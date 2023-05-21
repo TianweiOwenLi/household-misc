@@ -4,6 +4,8 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.support import expected_conditions as Ec
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 import re
 
@@ -45,6 +47,9 @@ def scrape_nutritional_facts(driver, url):
   nut = nutritions()
   
   try:
+    # WebDriverWait(driver=driver, timeout=5).until(
+    #   Ec.presence_of_element_located(By.CLASS_NAME, )
+    # )
     driver.get(url)
   except TimeoutException:
     driver.get(url)
@@ -52,20 +57,20 @@ def scrape_nutritional_facts(driver, url):
   # nutrition column element
   nutrition_col = None
   try:
-    nutrition_col = driver.find_element(By.CLASS_NAME, "nutrition-col")
+    nutrition_col = driver.find_element(By.CSS_SELECTOR, "div.nutrition-col")
   except NoSuchElementException:
     return None
 
   # portion size
-  portion = nutrition_col.find_element(By.CLASS_NAME, serving_cls_name).text
+  portion = nutrition_col.find_element(By.CSS_SELECTOR, "span.nutrition-col__serving-value").text
   nut.portion = portion
 
   # macro nutritions
-  macro_table = nutrition_col.find_element(By.CLASS_NAME, "macro-table")
-  for elt in macro_table.find_elements(By.CLASS_NAME, "macro-table__thead"):
+  macro_table = nutrition_col.find_element(By.CSS_SELECTOR, "div.macro-table")
+  for elt in macro_table.find_elements(By.CSS_SELECTOR, "div.macro-table__thead"):
 
     # a text containing nutrition label, value, and unit.
-    lbl_val_unit = elt.find_element(By.CLASS_NAME, "macro-table__nutration").text
+    lbl_val_unit = elt.find_element(By.CSS_SELECTOR, "div.macro-table__nutration").text
 
     # strip away unit: we already know it
     last_space_idx = lbl_val_unit.rfind(" ")
@@ -94,11 +99,11 @@ def scrape_nutritional_facts(driver, url):
 
 
   # micro nutritions
-  micro_table = nutrition_col.find_element(By.CLASS_NAME, "micro-facts-vitamins")
-  for elt in micro_table.find_elements(By.CLASS_NAME, "micro-facts-vitamins__li"):
+  micro_table = nutrition_col.find_element(By.CSS_SELECTOR, "div.micro-facts-vitamins")
+  for elt in micro_table.find_elements(By.CSS_SELECTOR, "li.micro-facts-vitamins__li"):
     
-    lbl = elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-values").text
-    percent = int(elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-percent").text[:-1])
+    lbl = elt.find_element(By.CSS_SELECTOR, "span.micro-facts-vitamins__li-values").text
+    percent = int(elt.find_element(By.CSS_SELECTOR, "span.micro-facts-vitamins__li-percent").text[:-1])
     
     match lbl:
       case "Vitamin A":
@@ -120,12 +125,14 @@ def scrape_nutritional_facts(driver, url):
       case other:
         pass
 
+  print(nut)
   return nut
 
 
 options = Options()
-options.headless = True
-options.add_argument("--window-size=960,1080")
+# options.headless = True
+# options.page_load_strategy = "none"
+# options.add_argument("--window-size=960,1080")
 
 driver = webdriver.Chrome(options=options)
 
