@@ -3,6 +3,7 @@ import pickle
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 import re
 
 from nutritions_typedef import nutritions
@@ -38,10 +39,18 @@ def scrape_nutritional_facts(driver, url):
   returns TODO
   """
   nut = nutritions()
-  driver.get(url)
+  
+  try:
+    driver.get(url)
+  except TimeoutException:
+    driver.get(url)
 
   # nutrition column element
-  nutrition_col = driver.find_element(By.CLASS_NAME, "nutrition-col")
+  nutrition_col = None
+  try:
+    nutrition_col = driver.find_element(By.CLASS_NAME, "nutrition-col")
+  except NoSuchElementException:
+    return None
 
   # portion size
   portion = nutrition_col.find_element(By.CLASS_NAME, serving_cls_name).text
@@ -125,7 +134,7 @@ for food_cat_link in food_category_links:
 
 counter = 0
 n = len(food_links)
-for link in food_links[:10]:
+for link in food_links:
   counter += 1
 
   benefit_idx = link.find("benefits-")
