@@ -46,19 +46,14 @@ def scrape_nutritional_facts(driver, url):
   """
   nut = nutritions()
   
-  try:
-    # WebDriverWait(driver=driver, timeout=5).until(
-    #   Ec.presence_of_element_located(By.CLASS_NAME, )
-    # )
-    driver.get(url)
-  except TimeoutException:
-    driver.get(url)
-
-  # nutrition column element
   nutrition_col = None
   try:
-    nutrition_col = driver.find_element(By.CSS_SELECTOR, "div.nutrition-col")
-  except NoSuchElementException:
+    driver.get(url)
+    nutrition_col = WebDriverWait(driver=driver, timeout=5, poll_frequency=1).until(
+      Ec.presence_of_element_located((By.CSS_SELECTOR, "div.nutrition-col"))
+    )
+  except TimeoutException:
+    print("Timeout triggered")
     return None
 
   # portion size
@@ -125,24 +120,39 @@ def scrape_nutritional_facts(driver, url):
       case other:
         pass
 
-  print(nut)
   return nut
 
 
-options = Options()
-# options.headless = True
-# options.page_load_strategy = "none"
-# options.add_argument("--window-size=960,1080")
+opt = Options()
+opt.add_argument('--headless')
+opt.add_argument("--window-size=960,1080")
 
-driver = webdriver.Chrome(options=options)
+full_driver = webdriver.Chrome(options=opt)
 
 # obtain links to each food category, i.e. fruits, vegetables, ...
-food_category_links = scrape_href_list(driver, webmd_url, food_category_patt)
+food_category_links = scrape_href_list(full_driver, webmd_url, food_category_patt)
 
 # obtain links to each individual food
 food_links = []
 for food_cat_link in food_category_links:
-  food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
+  guide_idx = food_cat_link.find("guide/")
+  cat_name = food_cat_link[guide_idx+6:]
+  print(f"Fetching category `{cat_name}`")
+  food_links.extend(scrape_href_list(full_driver, food_cat_link, food_patt))
+
+full_driver.close()
+
+
+opt.page_load_strategy = "none"
+
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument("--headless")
+chrome_options.add_experimental_option(
+  # skip images
+  "prefs", {"profile.managed_default_content_settings.images": 2}
+)
+
+fast_driver = webdriver.Chrome(options=opt, chrome_options=chrome_options)
 
 counter, n = 0, len(food_links)
 result = {}
@@ -157,9 +167,9 @@ for link in food_links:
     food_name = food_name[3:]
   
   print(f"[{counter}/{n}] Analyzing {food_name}")
-  result[food_name] = scrape_nutritional_facts(driver, link)
+  result[food_name] = scrape_nutritional_facts(fast_driver, link)
 
 with open("food-nutritions.pkl", "wb") as f:
   pickle.dump(result, f)
 
-driver.close()
+fast_driver.close()
