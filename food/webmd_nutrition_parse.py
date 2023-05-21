@@ -14,8 +14,6 @@ food_patt = r"https://www.webmd.com/diet/health-benefits-"
 # html element class name of food serving portion
 serving_cls_name = "nutrition-col__serving-value"
 
-# html element class name of food macro-nutrition portion
-macro_nutrition_cls_name = "macro-table__thead"
 
 @dataclass
 class nutritions:
@@ -27,7 +25,11 @@ class nutritions:
   lipid: int = 0
   dietary_fiber: int = 0
 
-  # vitamins and minerals are in mg.
+  # macro minerals are in mg
+  sodium: int = 0
+  potassium: int = 0
+
+  # vitamins and micro minerals are in percent.
   vitamin_a: int = 0
   vitamin_b3: int = 0
   vitamin_b6: int = 0
@@ -36,8 +38,9 @@ class nutritions:
   vitamin_d: int = 0
   vitamin_e: int = 0
 
-  sodium: int = 0
-  potassium: int = 0
+  calcium: int = 0
+  magnesium: int = 0
+
 
 
 def scrape_href_list(driver, url, patt):
@@ -60,9 +63,49 @@ def scrape_nutritional_facts(driver, url):
   """ Given some `selenium` driver and an url to WebMD food benefit page, 
   returns TODO
   """
+  nut = nutritions()
   driver.get(url)
 
-  portion = driver.find_element(By.CLASS_NAME, serving_cls_name).text
+  # nutrition column element
+  nutrition_col = driver.find_element(By.CLASS_NAME, "nutrition-col")
+
+  # portion size
+  portion = nutrition_col.find_element(By.CLASS_NAME, serving_cls_name).text
+
+  # macro nutritions
+  macro_table = nutrition_col.find_element(By.CLASS_NAME, "macro-table")
+  for elt in macro_table.find_elements(By.CLASS_NAME, "macro-table__thead"):
+
+    # a text containing nutrition label, value, and unit.
+    lbl_val_unit = elt.find_element(By.CLASS_NAME, "macro-table__nutration").text
+
+    # strip away unit: we already know it
+    last_space_idx = lbl_val_unit.rfind(" ")
+    lbl_val = lbl_val_unit[:last_space_idx]
+
+    # strip away numerical
+    last_space_idx = lbl_val.rfind(" ")
+    lbl, val = lbl_val[:last_space_idx], int(lbl_val[last_space_idx+1:])
+
+    # assign to suitable field
+    if lbl == "Total Fat":
+      nut.lipid = val
+    elif lbl == "Total Carbohydrate":
+      nut.carb = val
+    elif lbl == "Protein":
+      nut.protein = val
+    elif lbl == "Sodium":
+      nut.sodium = val
+    elif lbl == "Potassium":
+      nut.potassium = val
+    elif lbl == "Dietary Fiber":
+      nut.dietary_fiber = val
+    else:
+      pass
+  print(nut)
+
+  # micro nutritions
+  
 
 
 
@@ -75,10 +118,12 @@ food_category_links = scrape_href_list(driver, webmd_url, food_category_patt)
 
 # obtain links to each individual food
 food_links = []
-for food_cat_link in food_category_links:
-  food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
+# for food_cat_link in food_category_links:
+#   food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
 
-for item in food_links:
-  print(item)
+# for item in food_links:
+#   print(item)
+
+scrape_nutritional_facts(driver, "https://www.webmd.com/diet/health-benefits-apples")
 
 driver.close()
