@@ -1,0 +1,1 @@
+# This repository is dedicated to assist the completion of household chores with technology.
