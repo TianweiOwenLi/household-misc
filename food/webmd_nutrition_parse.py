@@ -42,7 +42,6 @@ class nutritions:
   magnesium: int = 0
 
 
-
 def scrape_href_list(driver, url, patt):
   """ Given some `selenium` driver, an url, and some regex pattern, 
   returns a list of hyperrefs in the url's content that matches the pattern.
@@ -88,24 +87,30 @@ def scrape_nutritional_facts(driver, url):
     lbl, val = lbl_val[:last_space_idx], int(lbl_val[last_space_idx+1:])
 
     # assign to suitable field
-    if lbl == "Total Fat":
-      nut.lipid = val
-    elif lbl == "Total Carbohydrate":
-      nut.carb = val
-    elif lbl == "Protein":
-      nut.protein = val
-    elif lbl == "Sodium":
-      nut.sodium = val
-    elif lbl == "Potassium":
-      nut.potassium = val
-    elif lbl == "Dietary Fiber":
-      nut.dietary_fiber = val
-    else:
-      pass
-  print(nut)
+    match lbl:
+      case "Total Fat":
+        nut.lipid = val
+      case "Total Carbohydrate":
+        nut.carb = val
+      case "Protein":
+        nut.protein = val
+      case "Sodium":
+        nut.sodium = val
+      case "Potassium":
+        nut.potassium = val
+      case "Dietary Fiber":
+        nut.dietary_fiber = val
+      case other:
+        pass
+
 
   # micro nutritions
-  
+  micro_table = nutrition_col.find_element(By.CLASS_NAME, "micro-facts-vitamins")
+  for elt in micro_table.find_elements(By.CLASS_NAME, "micro-facts-vitamins__li"):
+    tag = elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-values").text
+    percent = int(elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-percent").text[:-1])
+
+  print(nut)
 
 
 
