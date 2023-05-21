@@ -26,3 +26,6 @@ class nutritions:
   cobalamin: int = 0
   iron: int = 0
   magnesium: int = 0
+
+  def calories(self):
+    return (self.protein + self.carb) * 4 + self.lipid * 9
