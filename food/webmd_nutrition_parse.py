@@ -4,9 +4,13 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.chrome.options import Options
 import re
 
 from nutritions_typedef import nutritions
+
+# official site
+webmd_url = "https://www.webmd.com/diet/ingredients-guide"
 
 # start of food-category page url
 food_category_patt = r"https://www.webmd.com/diet/ingredients-guide/"
@@ -119,10 +123,11 @@ def scrape_nutritional_facts(driver, url):
   return nut
 
 
+options = Options()
+options.headless = True
+options.add_argument("--window-size=960,1080")
 
-driver = webdriver.Firefox()
-webmd_url = "https://www.webmd.com/diet/ingredients-guide"
-result = {}
+driver = webdriver.Chrome(options=options)
 
 # obtain links to each food category, i.e. fruits, vegetables, ...
 food_category_links = scrape_href_list(driver, webmd_url, food_category_patt)
@@ -132,8 +137,9 @@ food_links = []
 for food_cat_link in food_category_links:
   food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
 
-counter = 0
-n = len(food_links)
+counter, n = 0, len(food_links)
+result = {}
+
 for link in food_links:
   counter += 1
 
@@ -148,7 +154,5 @@ for link in food_links:
 
 with open("food-nutritions.pkl", "wb") as f:
   pickle.dump(result, f)
-
-scrape_nutritional_facts(driver, "https://www.webmd.com/diet/health-benefits-apples")
 
 driver.close()
