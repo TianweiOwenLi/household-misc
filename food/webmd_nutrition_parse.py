@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import pickle
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -146,11 +147,25 @@ food_category_links = scrape_href_list(driver, webmd_url, food_category_patt)
 
 # obtain links to each individual food
 food_links = []
-# for food_cat_link in food_category_links:
-#   food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
+for food_cat_link in food_category_links:
+  food_links.extend(scrape_href_list(driver, food_cat_link, food_patt))
 
-# for item in food_links:
-#   print(item)
+counter = 0
+n = len(food_links)
+for link in food_links[:10]:
+  counter += 1
+
+  benefit_idx = link.find("benefits-")
+
+  food_name = link[benefit_idx+9:]
+  if food_name.startswith("of-"):
+    food_name = food_name[3:]
+  
+  print(f"[{counter}/{n}] Analyzing {food_name}")
+  result[food_name] = scrape_nutritional_facts(driver, link)
+
+with open("food-nutritions.pkl", "wb") as f:
+  pickle.dump(result, f)
 
 scrape_nutritional_facts(driver, "https://www.webmd.com/diet/health-benefits-apples")
 
