@@ -19,6 +19,8 @@ serving_cls_name = "nutrition-col__serving-value"
 class nutritions:
   """nutritional facts"""
 
+  portion: str = ""
+
   # proteins, carbs, lipids, and dietary fiber are in grams.
   protein: int = 0
   carb: int = 0
@@ -31,14 +33,13 @@ class nutritions:
 
   # vitamins and micro minerals are in percent.
   vitamin_a: int = 0
-  vitamin_b3: int = 0
   vitamin_b6: int = 0
-  vitamin_b12: int = 0
   vitamin_c: int = 0
   vitamin_d: int = 0
-  vitamin_e: int = 0
 
   calcium: int = 0
+  cobalamin: int = 0
+  iron: int = 0
   magnesium: int = 0
 
 
@@ -70,6 +71,7 @@ def scrape_nutritional_facts(driver, url):
 
   # portion size
   portion = nutrition_col.find_element(By.CLASS_NAME, serving_cls_name).text
+  nut.portion = portion
 
   # macro nutritions
   macro_table = nutrition_col.find_element(By.CLASS_NAME, "macro-table")
@@ -107,10 +109,31 @@ def scrape_nutritional_facts(driver, url):
   # micro nutritions
   micro_table = nutrition_col.find_element(By.CLASS_NAME, "micro-facts-vitamins")
   for elt in micro_table.find_elements(By.CLASS_NAME, "micro-facts-vitamins__li"):
-    tag = elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-values").text
+    
+    lbl = elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-values").text
     percent = int(elt.find_element(By.CLASS_NAME, "micro-facts-vitamins__li-percent").text[:-1])
+    
+    match lbl:
+      case "Vitamin A":
+        nut.vitamin_a = percent
+      case "Vitamin B6":
+        nut.vitamin_b6 = percent
+      case "Vitamin C":
+        nut.vitamin_c = percent
+      case "Vitamin D":
+        nut.vitamin_d = percent
+      case "Calcium":
+        nut.calcium = percent
+      case "Cobalamin":
+        nut.cobalamin = percent
+      case "Iron":
+        nut.iron = percent
+      case "Magnesium":
+        nut.magnesium = percent
+      case other:
+        pass
 
-  print(nut)
+  return nut
 
 
 
