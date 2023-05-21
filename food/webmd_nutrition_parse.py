@@ -9,6 +9,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 import re
 
+from multiprocessing import Pool
+
 from nutritions_typedef import nutritions
 
 # official site
@@ -42,7 +44,7 @@ def scrape_href_list(driver, url, patt):
 
 def scrape_nutritional_facts(driver, url):
   """ Given some `selenium` driver and an url to WebMD food benefit page, 
-  returns TODO
+  returns the parsed nutritional facts
   """
   nut = nutritions()
   
@@ -53,7 +55,7 @@ def scrape_nutritional_facts(driver, url):
       Ec.presence_of_element_located((By.CSS_SELECTOR, "div.nutrition-col"))
     )
   except TimeoutException:
-    print("Timeout triggered")
+    print(f"Timeout triggered on {url}")
     return None
 
   # portion size
@@ -122,6 +124,35 @@ def scrape_nutritional_facts(driver, url):
 
   return nut
 
+def scrape_nutfact_process(url):
+  """ Similar to `scrape_nutritional_facts`, except can be used for 
+  a standalone process
+  """
+  opt = Options()
+  opt.add_argument('--headless')
+  opt.add_argument("--window-size=960,1080")
+  opt.page_load_strategy = "none"
+
+  chrome_options = webdriver.ChromeOptions()
+  chrome_options.add_argument("--headless")
+  chrome_options.add_experimental_option(
+    # skip images
+    "prefs", {"profile.managed_default_content_settings.images": 2}
+  )
+
+  driver = webdriver.Chrome(options=opt, chrome_options=chrome_options)
+
+  benefit_idx = url.find("benefits-")
+
+  food_name = url[benefit_idx+9:]
+  if food_name.startswith("of-"):
+    food_name = food_name[3:]
+  
+  print(f"Analyzing {food_name}")
+  nut = scrape_nutritional_facts(driver, url)
+
+  driver.close()
+  return (food_name, nut)
 
 opt = Options()
 opt.add_argument('--headless')
@@ -143,33 +174,12 @@ for food_cat_link in food_category_links:
 full_driver.close()
 
 
-opt.page_load_strategy = "none"
-
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument("--headless")
-chrome_options.add_experimental_option(
-  # skip images
-  "prefs", {"profile.managed_default_content_settings.images": 2}
-)
-
-fast_driver = webdriver.Chrome(options=opt, chrome_options=chrome_options)
-
-counter, n = 0, len(food_links)
-result = {}
-
-for link in food_links:
-  counter += 1
-
-  benefit_idx = link.find("benefits-")
-
-  food_name = link[benefit_idx+9:]
-  if food_name.startswith("of-"):
-    food_name = food_name[3:]
-  
-  print(f"[{counter}/{n}] Analyzing {food_name}")
-  result[food_name] = scrape_nutritional_facts(fast_driver, link)
+d, res = {}, []
+with Pool() as pool:
+  # parallel processing for better performance
+  res = pool.map(scrape_nutfact_process, food_links)
+  for (name, nut) in res:
+    d[name] = nut
 
 with open("food-nutritions.pkl", "wb") as f:
-  pickle.dump(result, f)
-
-fast_driver.close()
+  pickle.dump(d, f)
